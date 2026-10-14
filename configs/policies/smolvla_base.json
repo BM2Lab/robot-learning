@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "policy_type": "smolvla",
+  "lerobot": {
+    "version": "0.6.1",
+    "upstream_tag": "v0.6.1",
+    "upstream_commit": "7e241bd630a3719a56157a497ce5d08f244784f1"
+  },
+  "policy": {
+    "repo_id": "lerobot/smolvla_base",
+    "revision": "5e8d12a6e2975b0e5e5fce7c8caf47c371d257b6",
+    "config_sha256": "650584b56c104720f7a3c91d1ec6bec9e8de8ac11e60c92ba2fa82d93eda147d"
+  },
+  "vlm_and_tokenizer": {
+    "repo_id": "HuggingFaceTB/SmolVLM2-500M-Video-Instruct",
+    "revision": "7b375e1b73b11138ff12fe22c8f2822d8fe03467"
+  },
+  "runtime_profile": {
+    "python": "3.12",
+    "platform": "linux_x86_64",
+    "torch": "2.10.0+cu128",
+    "torchvision": "0.25.0+cu128"
+  },
+  "checkpoint_features": {
+    "state_shape": [6],
+    "action_shape": [6],
+    "cameras": ["observation.images.camera1", "observation.images.camera2", "observation.images.camera3"],
+    "camera_shape_chw": [3, 256, 256],
+    "chunk_size": 50
+  },
+  "deployment_status": "base checkpoint only; not adapted or approved for FR3",
+  "loading_rule": "Use exact revisions for policy and companion snapshots. The V0 loader uses verified local snapshots, strict full policy weight restoration, saved normalization processors, and a pinned local tokenizer/VLM config. No physical robot action mapping is implemented."
+}

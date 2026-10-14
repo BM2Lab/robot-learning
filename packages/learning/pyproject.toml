@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68,<82", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "learning"
+version = "0.0.1"
+description = "Offline-first lab platform scaffold"
+requires-python = ">=3.10"
+dependencies = ["contracts==0.0.1"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+smolvla = ["lerobot[smolvla]==0.6.1"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib"

@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "contract_id": "fr3_visual_reach_v1",
+  "robot": {
+    "robot_id": "fr3_sim_01",
+    "model": "fr3v2_bare_flange",
+    "manipulator": "arm",
+    "joint_names": ["panda_joint1", "panda_joint2", "panda_joint3", "panda_joint4", "panda_joint5", "panda_joint6", "panda_joint7"],
+    "base_frame": "robot_base",
+    "tcp_frame": "bare_flange",
+    "schema_version": 1
+  },
+  "observation": {
+    "state_key": "observation.state",
+    "joint_names": ["panda_joint1", "panda_joint2", "panda_joint3", "panda_joint4", "panda_joint5", "panda_joint6", "panda_joint7"],
+    "state_unit": "rad",
+    "instruction_key": "task",
+    "cameras": [
+      {"key": "observation.images.overhead", "optical_frame": "overhead_optical", "height": 256, "width": 256},
+      {"key": "observation.images.wrist", "optical_frame": "wrist_optical", "height": 256, "width": 256}
+    ]
+  },
+  "action": {
+    "manipulator": "arm",
+    "frame": "robot_base",
+    "tcp_frame": "bare_flange",
+    "policy_hz": 20.0,
+    "max_translation_norm_m": 0.005,
+    "mode": "cartesian_delta",
+    "components": ["dx", "dy", "dz"],
+    "unit": "m",
+    "reference": "measured_tcp_at_execution",
+    "orientation": "hold_episode_initial"
+  },
+  "chunk_size": 50
+}

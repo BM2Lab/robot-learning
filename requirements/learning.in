@@ -1,0 +1,7 @@
+# Workstation inference baseline: Python 3.12, Linux x86_64, NVIDIA CUDA 12.8 wheels.
+# Full resolved versions and hashes live in learning-py312-cu128.lock.
+lerobot[smolvla]==0.6.1
+torch==2.10.0+cu128
+torchvision==0.25.0+cu128
+pytest>=8,<9
+wheel
