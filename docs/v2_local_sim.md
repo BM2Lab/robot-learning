@@ -121,3 +121,7 @@ constants; another host supplies its compatible environments, asset and contract
 Next gate: demo recording/LeRobot export and task-compatible policy adaptation.
 Provision usable `LAB_DATA_ROOT` storage before collecting datasets; the existing
 bulk volume is not assumed to have enough capacity.
+
+V3 recording/export is now implemented and verified; see
+[V3 demonstrations](v3_demonstrations.md). Expert label requests are separately
+opt-in and do not change normal V2 mock-policy behavior.

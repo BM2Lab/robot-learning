@@ -45,6 +45,10 @@ Store manifests, configuration, lightweight fixtures and deterministic splits in
 
 V0 standalone inference/contracts and V2 local simulation client/mock rollout
 are implemented; see `docs/v0_smolvla.md` and `docs/v2_local_sim.md`.
+V3 expert archives/LeRobot export are implemented; see `docs/v3_demonstrations.md`.
+Preserve observation-before-action alignment, complete episode boundaries, held-out
+episode seeds and training-only normalization statistics. Never substitute reset
+observations for terminal samples or place target coordinates in policy features.
 Other placeholders do not imply working integrations. Pretrained native VLA
 actions are not task-compatible and must not be relabeled as physical commands.
 Default tests/CI use mocks or simulation, never live robots. A learning supervisor

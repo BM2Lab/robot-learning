@@ -12,6 +12,7 @@ dependencies = ["contracts==0.0.1"]
 [project.optional-dependencies]
 dev = ["pytest>=8"]
 smolvla = ["lerobot[smolvla]==0.6.1"]
+demonstrations = ["lerobot[dataset]==0.6.1"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

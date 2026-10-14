@@ -82,3 +82,7 @@ V0 model/inference details and commands are in [v0_smolvla.md](v0_smolvla.md).
 References: [release](https://github.com/huggingface/lerobot/releases/tag/v0.6.1),
 [release dependencies](https://github.com/huggingface/lerobot/blob/v0.6.1/pyproject.toml),
 [policy snapshot](https://huggingface.co/lerobot/smolvla_base/tree/5e8d12a6e2975b0e5e5fce7c8caf47c371d257b6).
+For V3 recording/export, use the extended demonstrations lock described in
+[v3_demonstrations.md](v3_demonstrations.md). It preserves inference versions
+except the documented dataset-compatible fsspec pin; the original inference lock
+is retained as a separate reproducible profile.

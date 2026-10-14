@@ -21,3 +21,7 @@ SmolVLA inference smoke, with no robot/simulator action mapping. See
 V2 is implemented: a typed local simulator client and finite mock action-chunk
 verification across isolated environments. See [V2 protocol and commands](docs/v2_local_sim.md).
 This does not map pretrained SmolVLA native actions to the FR3 task.
+
+V3 adds buffered expert demonstration collection and lossless LeRobot export,
+with complete-episode splits and full round-trip checks. See
+[V3 data contract and commands](docs/v3_demonstrations.md).

@@ -1,0 +1,6 @@
+# Extend the established inference profile; keep its resolved versions fixed.
+-r learning.in
+-c demonstrations-constraints.txt
+fsspec==2026.2.0
+lerobot[dataset]==0.6.1
+torchcodec==0.10.0
