@@ -17,3 +17,7 @@ See ../README.md for editable installation and source-only validation.
 V0 is implemented: dependency-light typed contracts and a standalone pretrained
 SmolVLA inference smoke, with no robot/simulator action mapping. See
 [docs/v0_smolvla.md](docs/v0_smolvla.md) for the contracts, tests and smoke command.
+
+V2 is implemented: a typed local simulator client and finite mock action-chunk
+verification across isolated environments. See [V2 protocol and commands](docs/v2_local_sim.md).
+This does not map pretrained SmolVLA native actions to the FR3 task.

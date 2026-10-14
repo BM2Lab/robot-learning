@@ -99,5 +99,8 @@ finite output shape `[1, 50, 6]`, and exact seeded reset replay (maximum differe
 guarantees or a demonstrated 20 Hz replan rate. Robot actions applied: **zero**.
 All 23 unit tests and the five workspace structure checks passed.
 
-V0 is complete. Next is V1: camera-equipped FR3 manager-based scene, verified
-feature/action mapping, sampled visual targets and a scripted expert baseline.
+V0 is complete. V1's camera-equipped FR3 scene/scripted expert and V2's local
+process bridge have since been implemented. See
+[V2 protocol and verification](v2_local_sim.md). The pretrained native action
+semantics still have not been adapted to the FR3 task; V0 inference remains
+separate from physical simulator command execution.

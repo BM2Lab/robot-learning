@@ -43,7 +43,10 @@ Store manifests, configuration, lightweight fixtures and deterministic splits in
 
 ## Safety and current status
 
-The repository is a scaffold; placeholders do not imply working integrations.
+V0 standalone inference/contracts and V2 local simulation client/mock rollout
+are implemented; see `docs/v0_smolvla.md` and `docs/v2_local_sim.md`.
+Other placeholders do not imply working integrations. Pretrained native VLA
+actions are not task-compatible and must not be relabeled as physical commands.
 Default tests/CI use mocks or simulation, never live robots. A learning supervisor
 cannot override a native runtime's stop/fault authority. Hardware connection,
 actuation, calibration and recovery require explicit separate authorization and
