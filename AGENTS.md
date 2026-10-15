@@ -51,6 +51,10 @@ Native LIBERO L0–L2 uses an isolated optional MuJoCo integration; see
 semantics; do not adapt them by padding/relabeling the FR3 Cartesian contract.
 Reuse upstream preprocessing/rollout and immutable model/asset pins. New package
 versions require requalification, including the isolated hf-libero asset-cache hook.
+L3 adds `evaluation/libero_suite.py`; see `docs/native_libero_suite.md`. Keep task
+selection and seed/fixture pairs explicit and save first-episode videos regardless
+of outcome. Never aggregate incomplete jobs into an apparently complete benchmark
+score; preserve infrastructure-failure versus policy-failure accounting.
 Preserve observation-before-action alignment, complete episode boundaries, held-out
 episode seeds and training-only normalization statistics. Never substitute reset
 observations for terminal samples or place target coordinates in policy features.

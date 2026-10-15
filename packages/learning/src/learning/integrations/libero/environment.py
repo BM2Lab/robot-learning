@@ -10,6 +10,21 @@ def bounded_native_action(action):
     return np.clip(action, -1, 1), int(np.count_nonzero(np.abs(action) > 1))
 
 
+def select_initial_state(native, index=None):
+    """Select the exact fixture row; reject out-of-range requests rather than wrapping."""
+    from hashlib import sha256
+    import json
+    import numpy as np
+    count = len(native._init_states)
+    index = native.init_state_id % count if index is None else index
+    if type(index) is not int or not 0 <= index < count:
+        raise ValueError(f"Initial-state index {index} outside available 0..{count-1}")
+    native.init_state_id = index  # upstream reset consumes this index then advances its stride
+    row = np.asarray(native._init_states[index])
+    descriptor = json.dumps({"dtype": str(row.dtype), "shape": row.shape}, sort_keys=True).encode()
+    return index, sha256(descriptor + row.tobytes()).hexdigest()
+
+
 def make_environment(recipe):
     from lerobot.envs.configs import LiberoEnv
     cfg = LiberoEnv(task=recipe["suite"], task_ids=[recipe["task_id"]], fps=20,

@@ -29,3 +29,5 @@ with complete-episode splits and full round-trip checks. See
 L0–L2 native pretrained VLA reference evaluation is available as a separate optional
 LIBERO/MuJoCo integration. It does not change the Isaac FR3 task or require new
 demonstrations. See [native LIBERO setup and rollout](docs/native_libero.md).
+L3 adds a small multi-task suite with explicit fixture/seed pairing, representative
+videos and validated aggregate results; see [native LIBERO suite](docs/native_libero_suite.md).

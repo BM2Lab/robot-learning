@@ -66,7 +66,7 @@ def run_evaluation(recipe_path, output_dir, runtime_dir, *, download=False, smok
         from lerobot.utils.random_utils import set_seed
         from learning.integrations.libero.environment import (
             make_environment, processed_observation, validate_observation, environment_receipt,
-            bounded_native_action)
+            bounded_native_action, select_initial_state)
         env_cfg, base = make_environment(cfg)
 
         class AuditedEnvironment(gym.vector.VectorWrapper):
@@ -154,15 +154,17 @@ def run_evaluation(recipe_path, output_dir, runtime_dir, *, download=False, smok
             model.policy.select_action = select_action
             episodes = []
             for episode in range(cfg["episodes"]):
-                seed = cfg["seed"] + episode
+                seed = cfg.get("episode_seeds", list(range(cfg["seed"], cfg["seed"] + cfg["episodes"])))[episode]
                 set_seed(seed)
                 model.reset()
                 env_pre.reset()
                 env_post.reset()
                 native = base.envs[0].unwrapped
-                initial_index = native.init_state_id % len(native._init_states)
+                requested_index = cfg.get("initial_state_indices", [None] * cfg["episodes"])[episode]
+                initial_index, initial_hash = select_initial_state(native, requested_index)
                 start_latency = len(latencies)
-                if cfg["video"]:
+                save_video = cfg["video"] and episode < cfg.get("video_episodes", cfg["episodes"])
+                if save_video:
                     import imageio.v2 as imageio
                     video_dir = output / "videos"
                     video_dir.mkdir(exist_ok=True)
@@ -175,13 +177,15 @@ def run_evaluation(recipe_path, output_dir, runtime_dir, *, download=False, smok
 
                 started = time.perf_counter()
                 data = rollout(env, model.policy, env_pre, env_post, model.pre, model.post,
-                               seeds=[seed], render_callback=render_callback if cfg["video"] else None)
+                               seeds=[seed], render_callback=render_callback if save_video else None)
                 validate_observation(processed_observation(env, env.first_observation, env_pre))
                 if writer is not None:
                     writer.close()
                     writer = None
                 measured = latencies[start_latency:]
                 audit = {"action_components_clipped": env.clipped, "peak_raw_controller_input": env.peak,
+                         "initial_state_sha256": initial_hash,
+                         "video": f"videos/episode_{episode:03d}.mp4" if save_video else None,
                          "action_clip_fraction": env.clipped / (7 * env.rows),
                          "wall_seconds": time.perf_counter() - started,
                          "mean_policy_call_seconds": float(np.mean(measured)),
@@ -218,3 +222,21 @@ def run_evaluation(recipe_path, output_dir, runtime_dir, *, download=False, smok
         finally:
             manifest["finished_utc"] = datetime.now(timezone.utc).isoformat()
             write_manifest()
+
+
+def main():
+    """Also available as python -m learning.evaluation.libero for suite child processes."""
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--config", required=True)
+    parser.add_argument("--output-dir", required=True)
+    parser.add_argument("--runtime-dir", required=True)
+    parser.add_argument("--download", action="store_true", help="Allow pinned downloads")
+    parser.add_argument("--smoke", action="store_true", help="At most two episodes; /tmp only")
+    args = parser.parse_args()
+    print(json.dumps(run_evaluation(args.config, args.output_dir, args.runtime_dir,
+                                  download=args.download, smoke=args.smoke), indent=2))
+
+
+if __name__ == "__main__":
+    main()

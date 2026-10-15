@@ -1,0 +1,15 @@
+# L3 reference slice, selected before evaluating results; not a full benchmark.
+schema_version: 1
+name: smolvla_libero_reference_v1
+policy_pin: ../policies/smolvla_libero.json
+device: cuda
+n_action_steps: 1
+job_timeout_seconds: 900
+video_episodes: 1
+episodes:
+  - {seed: 42, initial_state_index: 0}
+  - {seed: 43, initial_state_index: 1}
+tasks:
+  - {suite: libero_spatial, task_id: 0}
+  - {suite: libero_object, task_id: 0}
+  - {suite: libero_goal, task_id: 0}

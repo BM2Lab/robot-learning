@@ -140,8 +140,9 @@ data volume is not repurposed. Models and reusable assets are hot caches, not ru
 results. No telemetry files are written on every physics step.
 
 Two episodes of one task are an integration check, **not a published benchmark
-score** or evidence of transfer to Isaac/FR3/hardware. L3 task-suite expansion and
-an Isaac port remain deferred.
+score** or evidence of transfer to Isaac/FR3/hardware. L3 small-suite evaluation is
+now implemented; see [native LIBERO suite](native_libero_suite.md). An Isaac port
+remains separate work.
 
 ## Verification
 

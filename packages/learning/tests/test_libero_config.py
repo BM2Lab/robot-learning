@@ -48,5 +48,6 @@ def test_floating_revision_rejected(tmp_path):
 def test_optional_import_isolation():
     code = ("import sys; import learning.integrations.libero.config; "
             "import learning.integrations.libero.preflight; import learning.evaluation.libero; "
+            "import learning.evaluation.libero_suite; "
             "assert not any(x in sys.modules for x in ['torch','mujoco','libero','lerobot','isaaclab'])")
     subprocess.run([sys.executable, "-B", "-c", code], check=True)
