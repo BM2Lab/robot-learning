@@ -46,6 +46,11 @@ Store manifests, configuration, lightweight fixtures and deterministic splits in
 V0 standalone inference/contracts and V2 local simulation client/mock rollout
 are implemented; see `docs/v0_smolvla.md` and `docs/v2_local_sim.md`.
 V3 expert archives/LeRobot export are implemented; see `docs/v3_demonstrations.md`.
+Native LIBERO L0–L2 uses an isolated optional MuJoCo integration; see
+`docs/native_libero.md`. Preserve its native 8D EE/gripper state and 7D OSC action
+semantics; do not adapt them by padding/relabeling the FR3 Cartesian contract.
+Reuse upstream preprocessing/rollout and immutable model/asset pins. New package
+versions require requalification, including the isolated hf-libero asset-cache hook.
 Preserve observation-before-action alignment, complete episode boundaries, held-out
 episode seeds and training-only normalization statistics. Never substitute reset
 observations for terminal samples or place target coordinates in policy features.

@@ -40,6 +40,15 @@ def prepare_snapshots(pin, cache_dir, *, download=False):
     config_path = paths[0] / "config.json"
     if sha256(config_path.read_bytes()).hexdigest() != policy["config_sha256"]:
         raise RuntimeError("Checkpoint config hash mismatch")
+    for name, expected_hash in policy.get("files_sha256", {}).items():
+        if Path(name).name != name:
+            raise ValueError("Model manifest filenames must be basenames")
+        digest = sha256()
+        with (paths[0] / name).open("rb") as stream:
+            for block in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(block)
+        if digest.hexdigest() != expected_hash:
+            raise RuntimeError(f"Checkpoint file hash mismatch: {name}")
     config = json.loads(config_path.read_text())
     expected = pin["checkpoint_features"]
     if (config["input_features"]["observation.state"]["shape"] != expected["state_shape"]

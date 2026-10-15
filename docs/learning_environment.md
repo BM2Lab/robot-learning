@@ -86,3 +86,7 @@ For V3 recording/export, use the extended demonstrations lock described in
 [v3_demonstrations.md](v3_demonstrations.md). It preserves inference versions
 except the documented dataset-compatible fsspec pin; the original inference lock
 is retained as a separate reproducible profile.
+
+For native pretrained SmolVLA LIBERO evaluation, use the **separate** `libero-eval`
+venv and `requirements/libero-py312-cu128.lock`; do not sync that profile into
+the existing learning or Isaac environment. See [native LIBERO](native_libero.md).

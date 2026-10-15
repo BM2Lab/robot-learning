@@ -1,0 +1,11 @@
+# Bounded native reference, not a full benchmark or an Isaac task.
+schema_version: 1
+policy_pin: ../policies/smolvla_libero.json
+suite: libero_spatial
+task_id: 0
+episodes: 2
+seed: 42
+max_steps: 280
+n_action_steps: 1
+device: cuda
+video: true

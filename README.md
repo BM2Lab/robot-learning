@@ -25,3 +25,7 @@ This does not map pretrained SmolVLA native actions to the FR3 task.
 V3 adds buffered expert demonstration collection and lossless LeRobot export,
 with complete-episode splits and full round-trip checks. See
 [V3 data contract and commands](docs/v3_demonstrations.md).
+
+L0–L2 native pretrained VLA reference evaluation is available as a separate optional
+LIBERO/MuJoCo integration. It does not change the Isaac FR3 task or require new
+demonstrations. See [native LIBERO setup and rollout](docs/native_libero.md).

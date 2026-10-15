@@ -1,0 +1,8 @@
+# Native benchmark environment; never install in the shared Isaac environment.
+-c demonstrations-constraints.txt
+lerobot[smolvla,libero,evaluation]==0.6.1
+hf-libero==0.1.4
+torch==2.10.0+cu128
+torchvision==0.25.0+cu128
+pytest>=8,<9
+wheel
