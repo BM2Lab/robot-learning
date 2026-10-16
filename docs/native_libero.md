@@ -144,6 +144,10 @@ score** or evidence of transfer to Isaac/FR3/hardware. L3 small-suite evaluation
 now implemented; see [native LIBERO suite](native_libero_suite.md). An Isaac port
 remains separate work.
 
+The first port milestone, P0's offline native OSC/model reference exporter, is
+implemented separately: see [P0 reference export](libero_reference_export.md).
+This does not yet provide an Isaac scene or policy rollout.
+
 ## Verification
 
 Verified on this workstation, 2026-10-15:
