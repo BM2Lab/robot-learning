@@ -138,6 +138,40 @@ def export_reference(pin_path, runtime_dir, output):
                                     "bias": "qfrc_bias (gravity + Coriolis/centrifugal)",
                                     "pinv_rtol": 1e-15, "dtype": "float64; native goal quaternion math float32"},
                     "torque_lower": lower.tolist(), "torque_upper": upper.tolist(), "cases": cases}
+        # P1 scene import/reset receipts. Capture AFTER native fixture settling,
+        # rather than guessing object poses from the unsampled MJCF defaults.
+        metadata["scene"] = {
+            "body_pose_wxyz": {name: np.concatenate((native._env.sim.data.get_body_xpos(name),
+                                native._env.sim.data.get_body_xquat(name))).tolist()
+                               for name in model.body_names},
+            "joint_qpos": {name: np.atleast_1d(native._env.sim.data.get_joint_qpos(name)).tolist()
+                           for name in model.joint_names},
+            "joint_qvel": {name: np.atleast_1d(native._env.sim.data.get_joint_qvel(name)).tolist()
+                           for name in model.joint_names},
+            "dof_armature": model.dof_armature.tolist(),
+            "dof_damping": model.dof_damping.tolist(),
+            "dof_frictionloss": model.dof_frictionloss.tolist(),
+        }
+        # Same-state FK/dynamics probes, not controller trajectories. A moving
+        # probe distinguishes Coriolis from static gravity-only compensation.
+        simulation = native._env.sim
+        saved_q, saved_dq = simulation.data.qpos.copy(), simulation.data.qvel.copy()
+        metadata["scene"]["probes"] = []
+        try:
+            for sign in (0, -1, 1):
+                q = base["joint_position"] + sign*np.array([.03, -.02, .01, .02, -.03, .02, -.01])
+                dq = sign*np.array([.1, -.08, .06, -.04, .03, -.02, .01])
+                simulation.data.qpos[controller.qpos_index] = q
+                simulation.data.qvel[:] = 0
+                simulation.data.qvel[controller.qvel_index] = dq
+                simulation.forward()
+                controller.update(force=True)
+                metadata["scene"]["probes"].append({key: np.array(getattr(controller, attr)).copy()
+                                                       for key, attr in keys.items()})
+        finally:
+            simulation.data.qpos[:] = saved_q
+            simulation.data.qvel[:] = saved_dq
+            simulation.forward()
         def encode(value):
             if isinstance(value, np.ndarray):
                 return value.tolist()

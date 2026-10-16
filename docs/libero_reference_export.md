@@ -31,6 +31,10 @@ initial-state index 0. Outputs:
 - `reference.json`: runtime/asset/controller/source receipts, selected initial
   state and digest, model mass/inertia/COM and joint metadata, nine native OSC
   oracle cases with expected goals, null-space matrices and raw/clipped torques.
+  P1 additionally records settled body poses/joint states, passive parameters
+  and three FK/Jacobian/mass/bias probes, including moving joints. These are
+  same-state references, not trajectories; regenerate older P0-only exports
+  before building an Isaac scene. The extended export remains below 200 KiB.
 - `receipt.json`: SHA256 of the reference file. Only a complete valid JSON
   reference plus matching receipt should be consumed.
 
@@ -40,7 +44,9 @@ robosuite `set_goal` / `run_controller` with acquisition overridden, rather than
 reimplementing the expected algebra. They are **not physical trajectories**.
 The controller initial-joint anchor is captured independently from measured
 post-settling joints. The seventh native action is gripper control, not an arm
-rotation component; gripper parity and camera/scene physics belong to P1.
+rotation component. P1's Isaac scene qualification covers arm dynamics, gripper
+open/close and support contact; camera matching and actual grasp/place success
+remain separate work. See isaac-tasks' `docs/p1_libero_scene.md`.
 
 In isaac-tasks, compare without loading MuJoCo or Kit:
 
