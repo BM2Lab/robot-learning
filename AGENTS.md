@@ -64,3 +64,12 @@ Default tests/CI use mocks or simulation, never live robots. A learning supervis
 cannot override a native runtime's stop/fault authority. Hardware connection,
 actuation, calibration and recovery require explicit separate authorization and
 the selected runtime's qualification procedure.
+
+P2's optional Isaac/LIBERO bridge uses the distinct lightweight
+`contracts.libero.LiberoIOSpec`, not the FR3 joint-state/Cartesian-delta schema.
+See `docs/isaac_libero_bridge.md`. Preserve mixed native grip-site position and
+right-hand-body orientation, original FK quaternion branch, and already-processed
+image orientation. Do not run the LIBERO environment image flip twice. Clip raw
+controller inputs explicitly with saturation audit and bind chunks to capture
+identity/deadline. P2's neutral IPC smoke is not pretrained rollout or a success
+benchmark; its terminal success is null until a task predicate is qualified.

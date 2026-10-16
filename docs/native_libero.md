@@ -148,6 +148,11 @@ The first port milestone, P0's offline native OSC/model reference exporter, is
 implemented separately: see [P0 reference export](libero_reference_export.md).
 This does not yet provide an Isaac scene or policy rollout.
 
+P1/P2 now provide an Isaac qualification scene, native visual contract and
+neutral-action local bridge. See [P2 Isaac bridge](isaac_libero_bridge.md).
+Pretrained rollout and task-success qualification are still separate from the
+native MuJoCo benchmark documented here.
+
 ## Verification
 
 Verified on this workstation, 2026-10-15:

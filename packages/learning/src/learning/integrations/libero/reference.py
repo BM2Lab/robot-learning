@@ -35,12 +35,12 @@ def export_reference(pin_path, runtime_dir, output):
             return self.export_bias
 
     recipe = {"suite": "libero_object", "task_id": 0, "max_steps": 280}
-    _, env = make_environment(recipe)
+    env_cfg, env = make_environment(recipe)
     cases = []
     try:
         native = env.unwrapped.envs[0].unwrapped
         index, digest = select_initial_state(native, 0)
-        env.reset(seed=42)
+        raw_observation, _ = env.reset(seed=42)
         robot = native._env.robots[0]
         controller = robot.controller
         controller.update(force=True)
@@ -152,6 +152,58 @@ def export_reference(pin_path, runtime_dir, output):
             "dof_damping": model.dof_damping.tolist(),
             "dof_frictionloss": model.dof_frictionloss.tolist(),
         }
+        # P2 cameras and checkpoint-ready reference images, using the actual
+        # upstream LIBERO processor exactly once (including its 180-degree flip).
+        from lerobot.envs import make_env_pre_post_processors
+        from .environment import processed_observation
+        from PIL import Image
+        env_pre, _ = make_env_pre_post_processors(env_cfg, policy_cfg=None)
+        features = processed_observation(env, raw_observation, env_pre)
+        metadata["visual"] = {"state": features["observation.state"][0].cpu().tolist(),
+                              "cameras": {}, "native_framebuffer": "opengl_bottom_up",
+                              "processor_flip": "height_and_width_once"}
+        # Native observation quaternion is the robot right-hand BODY, whereas
+        # controller orientation is the gripper SITE (different by 90 degrees).
+        # Export the FK quaternion chain to retain MuJoCo's noncanonical sign;
+        # forcing w>=0 changes LeRobot's observed rotation vector near pi.
+        metadata["visual"]["orientation_body"] = robot.robot_model.eef_name
+        chain_ids = []
+        body_id = model.body_name2id(robot.robot_model.eef_name)
+        while body_id:
+            chain_ids.append(body_id)
+            body_id = int(model.body_parentid[body_id])
+        chain = []
+        arm_names = [f"robot0_joint{i}" for i in range(1, 8)]
+        for body_id in reversed(chain_ids):
+            q = np.asarray(model.body_quat[body_id])
+            item = {"fixed_quat_xyzw": q[[1, 2, 3, 0]].tolist(), "joint_index": None, "axis": [0., 0., 1.]}
+            if model.body_jntnum[body_id]:
+                if model.body_jntnum[body_id] != 1:
+                    raise RuntimeError("Unsupported native orientation chain")
+                joint_id = int(model.body_jntadr[body_id])
+                item["joint_index"] = arm_names.index(model.joint_id2name(joint_id))
+                item["axis"] = model.jnt_axis[joint_id].tolist()
+            chain.append(item)
+        metadata["visual"]["orientation_chain"] = chain
+        from lerobot.processor.env_processor import LiberoProcessorStep
+        import torch
+        q_body = np.asarray(native._env.sim.data.get_body_xquat(robot.robot_model.eef_name))[[1, 2, 3, 0]]
+        vector = LiberoProcessorStep()._quat2axisangle(torch.tensor(q_body)[None])[0].tolist()
+        finger_positions = [metadata["scene"]["joint_qpos"][name][0]
+                            for name in ("gripper0_finger_joint1", "gripper0_finger_joint2")]
+        metadata["visual"]["state_same_state"] = base["position"].tolist()+vector+finger_positions
+        metadata["visual"]["state_note"] = "state is the cached reset observation; state_same_state forces matching physical q/dq"
+        for name, key in (("agentview", "observation.images.image"),
+                          ("robot0_eye_in_hand", "observation.images.image2")):
+            image = features[key][0].permute(1, 2, 0).mul(255).round().byte().cpu().numpy()
+            filename = f"{name}_processed.png"
+            Image.fromarray(image).save(output/filename)
+            camera_id = model.camera_name2id(name)
+            metadata["visual"]["cameras"][name] = {
+                "key": key, "position_world": native._env.sim.data.get_camera_xpos(name).copy(),
+                "rotation_world_opengl": native._env.sim.data.get_camera_xmat(name).copy(),
+                "fovy_degrees": float(model.cam_fovy[camera_id]), "width": 256, "height": 256,
+                "image": filename, "image_sha256": file_hash(output/filename)}
         # Same-state FK/dynamics probes, not controller trajectories. A moving
         # probe distinguishes Coriolis from static gravity-only compensation.
         simulation = native._env.sim

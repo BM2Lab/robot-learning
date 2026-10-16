@@ -21,7 +21,8 @@ class LocalSimulatorClient:
             self.connection.connect(str(socket_path))
             self.stream = self.connection.makefile("rwb", buffering=0)
             receipt = self.request("hello", {"contract": spec.to_dict()})
-            if PolicyIOSpec.from_dict(receipt["contract"]) != spec or receipt["status"]["backend"] != "simulation":
+            parser = getattr(type(spec), "from_dict", PolicyIOSpec.from_dict)
+            if parser(receipt["contract"]) != spec or receipt["status"]["backend"] != "simulation":
                 raise ValueError("Remote backend or contract mismatch")
             if receipt["receipt"]["contract_sha256"] != hashlib.sha256(spec.to_json().encode()).hexdigest():
                 raise ValueError("Remote contract fingerprint mismatch")

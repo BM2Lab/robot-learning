@@ -35,6 +35,9 @@ initial-state index 0. Outputs:
   and three FK/Jacobian/mass/bias probes, including moving joints. These are
   same-state references, not trajectories; regenerate older P0-only exports
   before building an Isaac scene. The extended export remains below 200 KiB.
+  P2 adds camera OpenGL extrinsics/fovy, the native orientation-body FK chain,
+  cached reset and fresh same-state policy vectors, plus two processed PNG views.
+  PNG hashes are recorded; these additional files increase the total export size.
 - `receipt.json`: SHA256 of the reference file. Only a complete valid JSON
   reference plus matching receipt should be consumed.
 
@@ -45,8 +48,10 @@ reimplementing the expected algebra. They are **not physical trajectories**.
 The controller initial-joint anchor is captured independently from measured
 post-settling joints. The seventh native action is gripper control, not an arm
 rotation component. P1's Isaac scene qualification covers arm dynamics, gripper
-open/close and support contact; camera matching and actual grasp/place success
-remain separate work. See isaac-tasks' `docs/p1_libero_scene.md`.
+open/close and support contact. P2 qualifies camera geometry, state semantics and
+local IPC; image rendering is not pixel-identical. Actual grasp/place success
+remains separate work. See isaac-tasks' `docs/p2_libero_visual.md` and
+[learning-side P2 bridge](isaac_libero_bridge.md).
 
 In isaac-tasks, compare without loading MuJoCo or Kit:
 
