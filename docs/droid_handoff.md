@@ -38,6 +38,7 @@ overrides runtime stops.
 | D3 | `contracts` 0.0.2: sessions (franka-runtime-compatible), FR3 state sample, cross-host clock offset, DROID session/chunk binding | [droid_runtime_interface.md](droid_runtime_interface.md#contracts-d3-implemented-in-contracts-002) |
 | D4 | franka-runtime 0.0.4 (branch `d4-droid-runtime`, not pushed): generic `SessionAuthority`, DROID config, checks, executor, gripper intent, mock arm/hand, TCP service and mock CLI. 40 tests including real-socket sessions | franka-runtime `docs/droid-runtime.md` |
 | D5 | runner + franka-runtime client; live loopback (cameras, pinned server, `franka-droid-mock`) with recorded episodes | [droid_runner.md](droid_runner.md) |
+| D4+ | franka-runtime: setpoint-lead acceptance, FK workspace check (matches the robot-reported home flange), cross-host mock config; 46 tests | franka-runtime `docs/droid-runtime.md` |
 | sensors | RealSense color driver, latest-frame reader, live preview | sensors `docs/realsense.md` |
 
 Measured on the inference host: capture → validated chunk 64–98 ms, model about
@@ -78,11 +79,18 @@ Smoke the current pipeline (two terminals): start the server per
 per [openpi_droid_client.md](openpi_droid_client.md#live-smoke-no-robot). Close
 RealSense Viewer first; a camera can be opened by only one process.
 
+## Network (set up 2026-10-23)
+
+The inference host's Ethernet (10.77.0.1/30) is cabled directly to the RT host's USB
+adapter (10.77.0.2/30). Both hosts reach the internet over Wi-Fi, and FCI stays on the
+RT host's built-in port. Round trip: 0.38 ms average, 0.71 ms maximum, no loss; the link
+runs at 100 Mb/s. Details are in franka-runtime `docs/droid-d6-rt-host.md`.
+
 ## Hardware facts
 
 | Item | Value |
 |---|---|
-| Robot | FR3 with Franka Hand. Unit identity, firmware and limits are not yet recorded (`robot_id` `fr3_01` is a placeholder). |
+| Robot | FR3 with Franka Hand, system version 5.9.2 (read-only check 2026-10-23). Serial and model not yet recorded (`robot_id` `fr3_01` is a placeholder). Desk end effector is unset (EE = flange). |
 | Exterior camera | RealSense D435, librealsense serial `021222073194`, firmware 5.17.3.10 |
 | Wrist camera | RealSense D435i, serial `153222071583`, firmware 5.17.3.10; not yet mounted |
 | Camera mode | 640x360@30 RGB (16:9, matches DROID's aspect before letterboxing) |
@@ -90,11 +98,17 @@ RealSense Viewer first; a camera can be opened by only one process.
 
 ## Known issues and open decisions
 
-0. **Workspace and self-collision checks (block D7/D8).** Setpoint-lead execution was
-   chosen for DROID row 0 (see [droid_runner.md](droid_runner.md#row-0-semantics-setpoint-lead-decided-2026-10-23)).
-   In the mock loopback the policy drove the arm far from home (up to +2 rad on a
-   joint). Joint ranges alone will not keep a real arm off the table, so franka-runtime
-   needs FK-based workspace and self-collision checks first.
+0. **Next is D6 on the RT host.** Follow franka-runtime `docs/droid-d6-rt-host.md`:
+   - get the code there; franka-runtime's branch is uncommitted
+   - host hygiene
+   - a cross-host mock loopback over the direct link
+   - the Franky DROID backend
+   - commissioning values
+   - then the gated D7–D9 steps
+
+   Findings to act on:
+   - Desk has no end effector configured even though a Franka Hand is mounted.
+   - Self-collision checks are still missing; they need a vetted collision model.
 
 1. **Contracts versioning.** `contracts` is now 0.0.2 (`learning` 0.0.2 and sensors
    pin it). It implements `contracts.sessions` compatibly with franka-runtime's
