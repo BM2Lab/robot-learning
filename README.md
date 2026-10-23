@@ -39,3 +39,8 @@ contract, verified against a running pi05 server without a robot; see
 D2 makes the openpi server standalone: pinned upstream checkout outside the repo,
 verified checkpoint cache and an identity-publishing launcher; see
 [openpi server](docs/openpi_server.md).
+For DROID deployment status, roadmap and open decisions start at
+[DROID handoff](docs/droid_handoff.md).
+D3 (`contracts` 0.0.2) adds lease/command/receipt sessions, an FR3 state sample, a
+cross-host clock offset and DROID session/chunk binding for franka-runtime; see
+[DROID runtime interface](docs/droid_runtime_interface.md).

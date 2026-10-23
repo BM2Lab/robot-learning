@@ -78,6 +78,11 @@ D2 serves openpi standalone: upstream checkout at the pinned commit in a configu
 path outside this repo, openpi's own frozen lock, verified cache; see
 `docs/openpi_server.md`. Never vendor/fork openpi or depend on a downstream project
 (e.g. USRobot) for baselines. The launcher must not download; pin every artifact.
+Start DROID deployment work from `docs/droid_handoff.md`; the franka-runtime
+interface in `docs/droid_runtime_interface.md`: its D3 message contracts are implemented
+(`contracts.sessions`, `franka_state`, `clock`, `droid_session`; 0.0.2); runtime behavior
+is a proposal. Keep `contracts.sessions` positionally compatible with franka-runtime's
+`SessionAuthority`, and never let a converted deadline exceed the chunk's own.
 
 P2's optional Isaac/LIBERO bridge uses the distinct lightweight
 `contracts.libero.LiberoIOSpec`, not the FR3 joint-state/Cartesian-delta schema.

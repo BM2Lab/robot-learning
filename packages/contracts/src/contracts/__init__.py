@@ -1,3 +1,3 @@
-"""Dependency-light V0 robot, observation, action, episode and policy contracts."""
+"""Dependency-light robot, observation, action, episode, policy, session, clock and state contracts."""
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
