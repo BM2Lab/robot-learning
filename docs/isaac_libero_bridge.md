@@ -3,7 +3,8 @@
 This optional bridge uses `contracts.libero.LiberoIOSpec` and a separate simulator
 process. It is **not** the FR3 visual-reaching contract or a hardware interface.
 No simulator dependencies are installed in the learning environment. P2's checks
-send only neutral actions; actual pretrained rollout/task success remain P3 work.
+send only neutral actions. P3's bounded pretrained rollout and observed failure
+to demonstrate task transfer are documented in [p3_isaac_libero_rollout.md](p3_isaac_libero_rollout.md).
 
 `learning.integrations.isaaclab.libero` contains:
 
