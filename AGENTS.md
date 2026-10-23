@@ -83,6 +83,10 @@ interface in `docs/droid_runtime_interface.md`: its D3 message contracts are imp
 (`contracts.sessions`, `franka_state`, `clock`, `droid_session`; 0.0.2); runtime behavior
 is a proposal. Keep `contracts.sessions` positionally compatible with franka-runtime's
 `SessionAuthority`, and never let a converted deadline exceed the chunk's own.
+D5 adds `learning.integrations.franka_runtime.client` and `learning.rollouts.droid_runner`
+(`docs/droid_runner.md`). Talk to robots only through franka-runtime, never import it, and
+never retry past a latched fault. Rejections reuse the sequence number; match receipts to a
+submission by drain order, not by sequence alone.
 
 P2's optional Isaac/LIBERO bridge uses the distinct lightweight
 `contracts.libero.LiberoIOSpec`, not the FR3 joint-state/Cartesian-delta schema.

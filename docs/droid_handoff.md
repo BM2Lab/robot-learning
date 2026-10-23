@@ -36,6 +36,8 @@ overrides runtime stops.
 | D1 | openpi client, camera routing, live smoke with no robot | [openpi_droid_client.md](openpi_droid_client.md) |
 | D2 | standalone pinned openpi server: verified checkpoint, identity metadata, warmup | [openpi_server.md](openpi_server.md) |
 | D3 | `contracts` 0.0.2: sessions (franka-runtime-compatible), FR3 state sample, cross-host clock offset, DROID session/chunk binding | [droid_runtime_interface.md](droid_runtime_interface.md#contracts-d3-implemented-in-contracts-002) |
+| D4 | franka-runtime 0.0.4 (branch `d4-droid-runtime`, not pushed): generic `SessionAuthority`, DROID config, checks, executor, gripper intent, mock arm/hand, TCP service and mock CLI. 40 tests including real-socket sessions | franka-runtime `docs/droid-runtime.md` |
+| D5 | runner + franka-runtime client; live loopback (cameras, pinned server, `franka-droid-mock`) with recorded episodes | [droid_runner.md](droid_runner.md) |
 | sensors | RealSense color driver, latest-frame reader, live preview | sensors `docs/realsense.md` |
 
 Measured on the inference host: capture → validated chunk 64–98 ms, model about
@@ -49,14 +51,12 @@ franka-runtime's `docs/hardware-qualification.md`. Nothing before D7 touches har
 
 | Step | Work | Where | Done when |
 |---|---|---|---|
-| D4 | Network service, 7-joint position chunk executor, Franka Hand backend, all against mock backends | franka-runtime (can be developed on any machine) | mock tests for every rule in the interface spec |
-| D5 | Runner: state + cameras → policy → chunk submit; episode recording | robot-learning `learning` | loopback on the inference host against the D4 mock service |
 | D6 | Native integration: pinned Franky/libfranka backend, 1 kHz timing, jitter, link latency, clock offset | franka-runtime **on the RT host** | timing report; watchdog margins measured |
 | D7 **gate** | Shadow mode: read-only robot state, full pipeline, commands logged but not applied | both hosts | shadow run report: deviations, would-be velocities, rejections |
 | D8 **gate** | Hold/stop and gripper commissioning per unit | RT host | franka-runtime qualification evidence |
 | D9 **gate** | Slow, workspace-limited zero-shot trials, every episode recorded | both hosts | recorded episodes with outcome accounting |
 
-Develop D4–D5 off the RT host and test with mocks. Deploy pinned commits to the RT
+Development up to D5 happens off the RT host, tested with mocks. Deploy pinned commits to the RT
 host. Do not edit code there, and keep IDEs, agents and GPU jobs off it while it controls the robot.
 
 ## Environments on the inference workstation
@@ -90,14 +90,21 @@ RealSense Viewer first; a camera can be opened by only one process.
 
 ## Known issues and open decisions
 
+0. **Workspace and self-collision checks (block D7/D8).** Setpoint-lead execution was
+   chosen for DROID row 0 (see [droid_runner.md](droid_runner.md#row-0-semantics-setpoint-lead-decided-2026-10-23)).
+   In the mock loopback the policy drove the arm far from home (up to +2 rad on a
+   joint). Joint ranges alone will not keep a real arm off the table, so franka-runtime
+   needs FK-based workspace and self-collision checks first.
+
 1. **Contracts versioning.** `contracts` is now 0.0.2 (`learning` 0.0.2 and sensors
    pin it). It implements `contracts.sessions` compatibly with franka-runtime's
-   authority. franka-runtime on GitHub still pins `contracts==0.0.3` and also imports
-   `contracts.motion` and `contracts.franka_policy` (PPO/M4), which do not exist. D4
-   must repin franka-runtime to 0.0.2 and either implement those two modules in
-   `contracts` (a later version) or move them into franka-runtime. isaac-tasks
-   similarly pins 0.0.1 while importing newer modules. 0.0.2 was not labelled 0.0.3
-   so that it does not falsely claim to satisfy that pin.
+   authority. The D4 branch of franka-runtime pins `contracts==0.0.2`, and its
+   `SessionAuthority` no longer needs PPO/M4 contracts. Still open: franka-runtime's
+   M4/PPO slices import `contracts.motion` and `contracts.franka_policy`, which do not
+   exist, so their tests are skipped and their CLIs cannot run. Either implement those
+   modules in a later `contracts` version or move them into franka-runtime (a
+   maintainer decision). isaac-tasks similarly pins 0.0.1 while importing newer modules.
+   0.0.2 was not labelled 0.0.3 so that it does not falsely claim to satisfy the old pin.
 2. **Cross-host clocks.** D3 defines the probe and estimate contracts and the
    conservative deadline conversion. The probe exchange, its rate and the uncertainty
    bound in practice are D4/D6 work (measure on the real link).

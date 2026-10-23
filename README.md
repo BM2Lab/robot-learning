@@ -44,3 +44,5 @@ For DROID deployment status, roadmap and open decisions start at
 D3 (`contracts` 0.0.2) adds lease/command/receipt sessions, an FR3 state sample, a
 cross-host clock offset and DROID session/chunk binding for franka-runtime; see
 [DROID runtime interface](docs/droid_runtime_interface.md).
+D5 adds the DROID runner and franka-runtime client, verified in a live loopback against
+franka-runtime's mock; see [DROID runner](docs/droid_runner.md).

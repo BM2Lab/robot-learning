@@ -1,7 +1,9 @@
-# DROID runtime interface — proposal for franka-runtime
+# DROID runtime interface — franka-runtime
 
-**Status: the message contracts are implemented (D3, `contracts` 0.0.2); runtime
-behavior is a proposal for D4.** This specifies what the learning side will send to
+**Status: the message contracts are implemented (D3, `contracts` 0.0.2) and the
+runtime side runs against mocks (D4, franka-runtime 0.0.4 `franka_runtime.droid`,
+see its `docs/droid-runtime.md`). The Franky backend is D6.** Where D4 refined this
+proposal, the refinement is marked **D4**. This specifies what the learning side will send to
 and expect from franka-runtime for zero-shot `pi05_droid_jointpos`. See
 [droid_handoff.md](droid_handoff.md) for the roadmap.
 Where it conflicts with franka-runtime's AGENTS.md or qualification procedure,
@@ -61,11 +63,16 @@ records both the camera time and the state sample's runtime timestamp.
    adds its own:
    - FR3 joint limits with margin
    - per-row implied velocity, `|q_{k+1} − q_k| / 66.7 ms`, under configured limits
-   - the first row against the **current** measured `q` (not only the source state)
+   - the first row against the **current** measured `q` (not only the source state).
+     **D5/D4 decision:** setpoint lead. Row 0 may lead the measured q by at most
+     `max_target_lead_rad`; the motion generator limits approach speed and acceleration
    - workspace and self-collision checks if available
    - a deadline that is still in the future after clock conversion
 
    Any failure rejects the whole chunk with a reason in the receipt. Nothing is clipped.
+   **D4:** the joint-range, implied-speed and measured-q checks run at submit and again at
+   dispatch. Workspace and self-collision checks are not implemented. A rejected command
+   does not consume its sequence number, so the runner resubmits with the same sequence.
 2. **Replacement.** One pending chunk at most. A newly accepted chunk replaces the
    rows not yet started of the current one at the next row boundary. It never
    interleaves with or rewinds the current chunk.
@@ -77,10 +84,17 @@ records both the camera time and the state sample's runtime timestamp.
 4. **Underrun.** When rows run out before a new chunk arrives, hold the last target
    for at most a configured `hold_timeout_ms`, then perform the runtime's own stop.
    The start of a hold, its duration and any stop are reported in receipts.
+   **D4:** the hold target is the last row whose start time passed. A hold timeout
+   latches fault `native_fault:101`; a heartbeat timeout latches 102; a client
+   disconnect while running latches 103.
 5. **Expiry.** No row starts after `valid_until_ns`, converted to runtime time with
    its uncertainty subtracted. Expiry is treated as an underrun.
-6. **Receipts.** Each chunk gets accepted or rejected (with reason). Each row gets
-   applied, with its native tick and runtime time. Every hold or stop gets its own receipt.
+6. **Receipts.** Each chunk gets accepted or rejected (with reason). **D4:** "applied"
+   is per chunk, issued when its first row starts within the deadline, with the
+   native tick and runtime time. A chunk replaced or expired before starting is
+   rejected as superseded once a later chunk applies. Per-row progress and holds are
+   reported in the state stream (`executing_sequence`/`executing_row`, `valid`), and
+   stops through the latched fault, not as separate receipts.
 
 ### Gripper
 
