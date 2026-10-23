@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "policy_type": "openpi",
+  "openpi": {
+    "upstream": "https://github.com/Physical-Intelligence/openpi",
+    "upstream_commit": "215abfb217dbac7d5f1273282331b9b1866c0479",
+    "train_config": "pi05_droid_jointpos_polaris"
+  },
+  "checkpoint": {
+    "dir": "gs://openpi-assets-simeval/pi05_droid_jointpos",
+    "norm_stats": "assets/droid/norm_stats.json",
+    "norm_stats_sha256": "57ce9956f9e07d65f8a8205aabec72d436a2c8927f53edb40c7a77b14a5a90c7"
+  },
+  "checkpoint_features": {
+    "state": "7 joint positions (rad) + gripper closure",
+    "action_shape": [15, 8],
+    "action_semantics": "absolute joint position targets (server applies AbsoluteActions) + gripper closure",
+    "cameras": ["observation/exterior_image_1_left", "observation/wrist_image_left"],
+    "camera_shape_hwc": [224, 224, 3]
+  },
+  "native_contract": "configs/contracts/droid_fr3_jointpos_v1.json",
+  "deployment_status": "trained on DROID Panda + Robotiq 2F-85; zero-shot FR3 + Franka Hand transfer is unqualified",
+  "serving_rule": "Serve with upstream openpi scripts/serve_policy.py at the pinned commit in its own environment. Verify norm_stats_sha256 before serving. The learning environment talks to it only through openpi-client."
+}

@@ -31,3 +31,5 @@ LIBERO/MuJoCo integration. It does not change the Isaac FR3 task or require new
 demonstrations. See [native LIBERO setup and rollout](docs/native_libero.md).
 L3 adds a small multi-task suite with explicit fixture/seed pairing, representative
 videos and validated aggregate results; see [native LIBERO suite](docs/native_libero_suite.md).
+D0 adds a native openpi DROID joint-position contract for zero-shot FR3 + Franka
+Hand work, with no client or hardware path yet; see [DROID joint position](docs/droid_jointpos.md).

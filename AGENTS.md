@@ -65,6 +65,11 @@ cannot override a native runtime's stop/fault authority. Hardware connection,
 actuation, calibration and recovery require explicit separate authorization and
 the selected runtime's qualification procedure.
 
+D0 adds `contracts.droid` for the native openpi pi05_droid_jointpos I/O on FR3 +
+Franka Hand; see `docs/droid_jointpos.md`. Actions are absolute joint targets plus
+gripper closure, not velocities or FR3 Cartesian deltas. Reject, never clip,
+out-of-bound joint targets; the contract bound is not a runtime safety guard.
+
 P2's optional Isaac/LIBERO bridge uses the distinct lightweight
 `contracts.libero.LiberoIOSpec`, not the FR3 joint-state/Cartesian-delta schema.
 See `docs/isaac_libero_bridge.md`. Preserve mixed native grip-site position and
