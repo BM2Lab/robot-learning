@@ -14,6 +14,7 @@ dev = ["pytest>=8"]
 smolvla = ["lerobot[smolvla]==0.6.1"]
 demonstrations = ["lerobot[dataset]==0.6.1"]
 libero = ["lerobot[smolvla,libero,evaluation]==0.6.1", "hf-libero==0.1.4"]
+openpi = ["openpi-client @ git+https://github.com/Physical-Intelligence/openpi@215abfb217dbac7d5f1273282331b9b1866c0479#subdirectory=packages/openpi-client"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

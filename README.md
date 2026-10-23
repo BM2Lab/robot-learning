@@ -33,3 +33,9 @@ L3 adds a small multi-task suite with explicit fixture/seed pairing, representat
 videos and validated aggregate results; see [native LIBERO suite](docs/native_libero_suite.md).
 D0 adds a native openpi DROID joint-position contract for zero-shot FR3 + Franka
 Hand work, with no client or hardware path yet; see [DROID joint position](docs/droid_jointpos.md).
+D1 adds an upstream openpi-client adapter and live RealSense routing for that
+contract, verified against a running pi05 server without a robot; see
+[openpi DROID client](docs/openpi_droid_client.md).
+D2 makes the openpi server standalone: pinned upstream checkout outside the repo,
+verified checkpoint cache and an identity-publishing launcher; see
+[openpi server](docs/openpi_server.md).

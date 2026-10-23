@@ -3,8 +3,9 @@
 `contracts.droid` declares the I/O of the pretrained `pi05_droid_jointpos`
 checkpoint for a zero-shot FR3 + Franka Hand deployment. It is a distinct
 native contract, like `contracts.libero`; it is **not** the FR3
-`CartesianDeltaSpec` and does not add any hardware command path. No policy client,
-runner, network service or runtime integration is implemented yet.
+`CartesianDeltaSpec` and does not add any hardware command path. The openpi
+client and live camera routing are D1 ([openpi DROID client](openpi_droid_client.md));
+no runner, network service or runtime integration exists yet.
 
 ## Upstream pins
 
@@ -28,11 +29,14 @@ runner, network service or runtime integration is implemented yet.
   deltas) plus gripper closure. Do not clip joints to [-1, 1]; that is
   upstream's joint-velocity example. `open_loop_horizon` rows are executed
   per inference (config: 8, openpi's DROID real-robot default; Arena uses 15).
+  The D1 client builds chunks from those rows only, so the bound below applies
+  to exactly what would execute.
 - **Deviation bound**: each joint target must stay within
   `max_deviation_from_source_rad` of the joint state captured with the source
   observation, which the chunk carries. Out-of-bound chunks are rejected, never
   clipped. The configured 0.6 rad sits just outside the training q01/q99
-  (about ±0.53 rad). It is a semantic sanity check, **not** a safety guard:
+  (about ±0.53 rad). Live D1 inference from a static pose reached 0.50 rad over
+  8 rows and 0.81 rad over 15 rows. It is a semantic sanity check, **not** a safety guard:
   joint, velocity and workspace limits remain franka-runtime authority.
 - **Gripper**: DROID was trained with a Robotiq 2F-85. `FrankaHandClosureMap`
   declares closure = 1 − width/`open_width_m` (clipped) and a binary command

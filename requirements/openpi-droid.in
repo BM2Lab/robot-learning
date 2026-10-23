@@ -1,0 +1,17 @@
+# DROID deployment client: contracts/learning + upstream openpi-client + RealSense capture.
+# No JAX, torch or model weights; the policy server runs in its own openpi environment.
+# openpi-client requires numpy<2, so never sync this into the learning or LIBERO profiles.
+openpi-client @ git+https://github.com/Physical-Intelligence/openpi@215abfb217dbac7d5f1273282331b9b1866c0479#subdirectory=packages/openpi-client
+# Client dependencies pinned to openpi 215abfb uv.lock. Newer websockets deprecate the
+# client's connect() usage; pillow drives resize_with_pad. typing_extensions is imported
+# by openpi-client but not declared upstream.
+websockets==15.0.1
+msgpack==1.1.0
+dm-tree==0.1.9
+pillow==11.2.1
+typing-extensions==4.13.2
+numpy==1.26.4
+# For the separately installed BM2Lab sensors[realsense] distribution.
+pyrealsense2==2.58.4.10922
+pytest>=8,<9
+wheel

@@ -8,8 +8,20 @@
   },
   "checkpoint": {
     "dir": "gs://openpi-assets-simeval/pi05_droid_jointpos",
+    "files": 26,
+    "bytes": 12435136033,
+    "tree_sha256": "2aa4c6a05eac5442d8796c5550946c5817cce3fab040bd7f9b806ce08aaad601",
     "norm_stats": "assets/droid/norm_stats.json",
     "norm_stats_sha256": "57ce9956f9e07d65f8a8205aabec72d436a2c8927f53edb40c7a77b14a5a90c7"
+  },
+  "config_assets": {
+    "url": "gs://openpi-assets/checkpoints/polaris/pi05_droid_jointpos_polaris/assets/droid",
+    "norm_stats_sha256": "57ce9956f9e07d65f8a8205aabec72d436a2c8927f53edb40c7a77b14a5a90c7",
+    "note": "Loaded by openpi when building the train config; the checkpoint's own norm stats (identical) take precedence."
+  },
+  "tokenizer": {
+    "url": "gs://big_vision/paligemma_tokenizer.model",
+    "sha256": "8986bb4f423f07f8c7f70d0dbe3526fb2316056c17bae71b1ea975e77a168fc6"
   },
   "checkpoint_features": {
     "state": "7 joint positions (rad) + gripper closure",
@@ -20,5 +32,5 @@
   },
   "native_contract": "configs/contracts/droid_fr3_jointpos_v1.json",
   "deployment_status": "trained on DROID Panda + Robotiq 2F-85; zero-shot FR3 + Franka Hand transfer is unqualified",
-  "serving_rule": "Serve with upstream openpi scripts/serve_policy.py at the pinned commit in its own environment. Verify norm_stats_sha256 before serving. The learning environment talks to it only through openpi-client."
+  "serving_rule": "Serve with scripts/serve_openpi_policy.py from an openpi checkout at upstream_commit in its own environment. It verifies the checkout, checkpoint tree and tokenizer, then publishes server_identity metadata that the client requires. tree_sha256 hashes sorted relative paths and file SHA-256s (learning.integrations.openpi.checkpoint.tree_digest)."
 }

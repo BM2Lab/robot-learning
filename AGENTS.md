@@ -69,6 +69,15 @@ D0 adds `contracts.droid` for the native openpi pi05_droid_jointpos I/O on FR3 +
 Franka Hand; see `docs/droid_jointpos.md`. Actions are absolute joint targets plus
 gripper closure, not velocities or FR3 Cartesian deltas. Reject, never clip,
 out-of-bound joint targets; the contract bound is not a runtime safety guard.
+D1 adds the openpi DROID client and camera routing in
+`learning.integrations.openpi`; see `docs/openpi_droid_client.md`. It has no robot
+path. Use the separate numpy<2 `openpi-droid` profile; learning must not import
+sensors. Chunks contain only executable open-loop rows; record `ChunkRejected`,
+never clip joints. Clients require the pinned server identity.
+D2 serves openpi standalone: upstream checkout at the pinned commit in a configured
+path outside this repo, openpi's own frozen lock, verified cache; see
+`docs/openpi_server.md`. Never vendor/fork openpi or depend on a downstream project
+(e.g. USRobot) for baselines. The launcher must not download; pin every artifact.
 
 P2's optional Isaac/LIBERO bridge uses the distinct lightweight
 `contracts.libero.LiberoIOSpec`, not the FR3 joint-state/Cartesian-delta schema.
