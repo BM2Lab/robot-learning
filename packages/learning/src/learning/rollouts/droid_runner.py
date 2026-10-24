@@ -190,8 +190,12 @@ class DroidRunner:
             released = False
             self._poll()
             if self.fault is None:
-                self.runtime.release(f"episode {outcome}")
-                released = True
+                try:
+                    self.runtime.release(f"episode {outcome}")
+                    released = True
+                except RuntimeError as error:  # a fault latched between the poll and the release
+                    self.recorder.event("release_refused", error=str(error))
+                    self._poll()
                 deadline = self.clock()+2_000_000_000
                 while self.clock() < deadline and self._poll().get("authority_state") != "complete" and self.fault is None:
                     self.sleep(0.01)

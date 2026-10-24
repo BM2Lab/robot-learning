@@ -248,3 +248,15 @@ def test_release_waits_for_the_last_rows_but_not_past_the_hold(tmp_path):
     applied = [e for e in events(tmp_path) if e["kind"] == "receipt" and e["receipt"]["status"] == "applied"][-1]
     rows_end = runtime.to_client(applied["receipt"]["timestamp_ns"])+SPEC.open_loop_horizon*66_666_667
     assert rows_end <= runtime.released_at < rows_end+100_000_000
+
+
+def test_release_refused_after_a_late_fault_is_recorded_not_raised(tmp_path):
+    clock = Clock()
+    runtime = FakeRuntime(clock)
+    def refuse(reason):
+        runtime.fault = FaultReport("s", "e", "rt", clock()+OFFSET, "native_fault:204", "complete")
+        raise RuntimeError("release: AuthorityError: Fault or stop is latched")
+    runtime.release = refuse
+    summary = runner(tmp_path, clock, runtime, max_steps=1).run()
+    assert not summary["released"] and summary["fault"]["code"] == "native_fault:204"
+    assert any(e["kind"] == "release_refused" for e in events(tmp_path))
