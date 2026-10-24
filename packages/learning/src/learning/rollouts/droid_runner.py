@@ -120,20 +120,21 @@ class DroidRunner:
             self.sleep(0.005)
         return None
 
-    def _finish_rows(self, timeout_ns):
-        """Let the last chunk's rows finish, then return as the runtime starts holding."""
-        deadline = self.clock()+timeout_ns
-        while self.clock() < deadline and self.fault is None:
-            if self.runtime.state().executing_sequence is None:
-                return
+    def _finish_rows(self, rows_end_ns):
+        """Wait until the last applied chunk's rows have played out, then return to release.
+
+        The runtime keeps reporting that chunk while it holds its last row, and the hold is short
+        (hold_timeout_ns), so the end time comes from the applied receipt, not from executing_sequence.
+        """
+        while self.clock() < rows_end_ns and self.fault is None:
             self._poll()
-            self.sleep(0.005)
+            self.sleep(min(0.005, max(0., (rows_end_ns-self.clock())/1e9)))
 
     def run(self):
         episode_id = f"droid-{uuid.uuid4().hex}"
         self.recorder.event("episode_start", episode_id=episode_id, instruction=self.instruction,
                             replan_after_rows=self.replan_after_rows)
-        outcome, rejections, steps, applied_count = "max_steps", 0, 0, 0
+        outcome, rejections, steps, applied_count, rows_end = "max_steps", 0, 0, 0, None
         try:
             if not self._await_valid_state():
                 outcome = "runtime_fault" if self.fault is not None else "runtime_not_ready"
@@ -173,12 +174,14 @@ class DroidRunner:
                     if started is None:
                         continue
                     applied_count += 1
+                rows_end = self.runtime.to_client(started.timestamp_ns)+len(chunk.executable_rows(self.spec))*self.period_ns
                 replan_at = self.runtime.to_client(started.timestamp_ns)+self.replan_after_rows*self.period_ns
                 while self.clock() < replan_at and self.fault is None:
                     self._poll()  # notice a latched fault during the wait, not only at the next step
                     self.sleep(min(0.01, max(0., (replan_at-self.clock())/1e9)))
             if outcome == "max_steps":
-                self._finish_rows((self.spec.open_loop_horizon+1)*self.period_ns)
+                if rows_end is not None and not self.shadow:
+                    self._finish_rows(rows_end)
         except _EndEpisode:
             pass
         except KeyboardInterrupt:

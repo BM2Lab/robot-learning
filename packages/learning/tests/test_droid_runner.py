@@ -71,7 +71,7 @@ class FakeRuntime:
         return out, self.fault, {"authority_state": state}
 
     def release(self, reason):
-        self.released = reason
+        self.released, self.released_at = reason, self.clock()
 
 
 class Router:
@@ -237,3 +237,14 @@ def test_fault_during_replan_wait_is_noticed(tmp_path):
     runtime.receipts = receipts
     summary = runner(tmp_path, clock, runtime, max_steps=5).run()
     assert summary["outcome"] == "runtime_fault" and summary["steps"] == 1
+
+
+def test_release_waits_for_the_last_rows_but_not_past_the_hold(tmp_path):
+    # D9 2026-10-24: the runtime reports the last chunk while holding its final row, so waiting for
+    # executing_sequence to clear ran past the 200 ms hold and faulted (native 204).
+    clock = Clock()
+    runtime = FakeRuntime(clock)
+    runner(tmp_path, clock, runtime, max_steps=2).run()
+    applied = [e for e in events(tmp_path) if e["kind"] == "receipt" and e["receipt"]["status"] == "applied"][-1]
+    rows_end = runtime.to_client(applied["receipt"]["timestamp_ns"])+SPEC.open_loop_horizon*66_666_667
+    assert rows_end <= runtime.released_at < rows_end+100_000_000
