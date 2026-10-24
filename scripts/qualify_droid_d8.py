@@ -187,9 +187,9 @@ def main():
     p.add_argument("--max-uncertainty-us", type=int, default=2000)
     p.add_argument("--offline-mock", action="store_true", help="rehearse against the D4 mock runtime (not D8 evidence)")
     args = p.parse_args()
-    if not 0 <= args.joint <= 6 or not 0 < args.amplitude_rad <= 0.3 or args.period_s < 2. \
-            or args.amplitude_rad*math.pi/args.period_s > 0.25 or not 0 < args.duration_s <= 60:
-        p.error("D8 bounds: joint 0..6, amplitude <= 0.3 rad, period >= 2 s, peak speed <= 0.25 rad/s, duration <= 60 s")
+    if not 0 <= args.joint <= 6 or not 0 < args.amplitude_rad <= 0.3 or args.period_s < 1.5 \
+            or args.amplitude_rad*math.pi/args.period_s > 0.55 or not 0 < args.duration_s <= 60:
+        p.error("D8 bounds: joint 0..6, amplitude <= 0.3 rad, period >= 1.5 s, peak speed <= 0.55 rad/s, duration <= 60 s")
     from run_droid_runtime import read_token, source_revision
     if args.output_dir.exists():
         p.error(f"{args.output_dir} exists; use a new directory per stage")
