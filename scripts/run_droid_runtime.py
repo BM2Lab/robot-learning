@@ -66,6 +66,8 @@ def main():
                         help="require a runtime whose hello reports a shadow backend (evaluates, never executes)")
     parser.add_argument("--max-uncertainty-us", type=int, default=2000)
     parser.add_argument("--max-consecutive-rejections", type=int, default=3)
+    parser.add_argument("--preview-dir", type=Path,
+                        help="write the latest policy-input images here for scripts/view_policy_inputs.py")
     args = parser.parse_args()
     if not 1 <= args.max_steps <= 500:
         parser.error("--max-steps must be 1..500")
@@ -109,7 +111,12 @@ def main():
                 if time.monotonic() > deadline:
                     raise
                 time.sleep(0.01)
-        runner = DroidRunner(spec, policy, runtime, router, recorder, instruction=args.instruction,
+        preview = None
+        if args.preview_dir is not None:
+            from learning.rollouts.policy_preview import PolicyPreview
+            preview = PolicyPreview(args.preview_dir)
+            stack.callback(preview.close)
+        runner = DroidRunner(spec, policy, runtime, router, recorder, instruction=args.instruction, preview=preview,
                              max_steps=args.max_steps, replan_after_rows=args.replan_after_rows,
                              max_state_age_ns=100_000_000, max_state_camera_skew_ns=100_000_000,
                              max_consecutive_rejections=args.max_consecutive_rejections, shadow=args.shadow)

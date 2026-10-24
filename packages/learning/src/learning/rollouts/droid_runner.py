@@ -44,7 +44,7 @@ class DroidEpisodeRecorder:
 class DroidRunner:
     def __init__(self, spec, policy, runtime, router, recorder, *, instruction, max_steps, replan_after_rows,
                  max_state_age_ns, max_state_camera_skew_ns, max_consecutive_rejections,
-                 startup_timeout_ns=5_000_000_000, shadow=False, clock=time.monotonic_ns, sleep=time.sleep):
+                 startup_timeout_ns=5_000_000_000, shadow=False, clock=time.monotonic_ns, sleep=time.sleep, preview=None):
         """``shadow``: the runtime evaluates but never executes commands, so it never confirms
         ``applied``; replanning is then timed from the ``accepted`` receipt instead."""
         if not 1 <= replan_after_rows <= spec.open_loop_horizon:
@@ -57,6 +57,7 @@ class DroidRunner:
         self.max_rejections, self.clock, self.sleep = max_consecutive_rejections, clock, sleep
         self.startup_timeout_ns, self.shadow = startup_timeout_ns, shadow
         self.period_ns = round(1e9/spec.action.policy_hz)
+        self.preview = preview
         self.receipts = {}
         self.fault = None
 
@@ -145,6 +146,8 @@ class DroidRunner:
                     outcome = "runtime_fault"
                     break
                 packet, state, camera = self._observe(step, episode_id)
+                if self.preview is not None:
+                    self.preview.offer(step, packet)  # latest-only, written off the control path
                 steps += 1
                 try:
                     chunk, audit = self.policy.infer(packet)

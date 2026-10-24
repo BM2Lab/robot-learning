@@ -260,3 +260,25 @@ def test_release_refused_after_a_late_fault_is_recorded_not_raised(tmp_path):
     summary = runner(tmp_path, clock, runtime, max_steps=1).run()
     assert not summary["released"] and summary["fault"]["code"] == "native_fault:204"
     assert any(e["kind"] == "release_refused" for e in events(tmp_path))
+
+
+def test_preview_writes_exactly_the_policy_images_for_each_step(tmp_path):
+    import runpy
+    from learning.rollouts.policy_preview import PolicyPreview
+    clock = Clock()
+    offered = []
+
+    class Recording(PolicyPreview):
+        def offer(self, step, packet):
+            offered.append(step)
+            super().offer(step, packet)
+
+    preview = Recording(tmp_path/"preview")
+    runner(tmp_path, clock, FakeRuntime(clock), max_steps=2, preview=preview).run()
+    preview.close()
+    assert offered == [0, 1] and preview.written >= 1
+    viewer = runpy.run_path(str(Path(__file__).resolve().parents[3]/"scripts/view_policy_inputs.py"))
+    meta, images = viewer["load_latest"](tmp_path/"preview")
+    assert meta["step"] == 1 and meta["instruction"] == "put the cube in the bowl"
+    assert set(images) == {EXT, WRIST}
+    assert all(np.array_equal(np.asarray(image), np.zeros((224, 224, 3), np.uint8)) for image in images.values())
