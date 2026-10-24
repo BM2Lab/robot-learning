@@ -282,3 +282,13 @@ def test_preview_writes_exactly_the_policy_images_for_each_step(tmp_path):
     assert meta["step"] == 1 and meta["instruction"] == "put the cube in the bowl"
     assert set(images) == {EXT, WRIST}
     assert all(np.array_equal(np.asarray(image), np.zeros((224, 224, 3), np.uint8)) for image in images.values())
+
+
+def test_episode_refuses_to_start_with_a_closed_hand(tmp_path):
+    clock = Clock()
+    runtime = FakeRuntime(clock)
+    state = runtime.state
+    runtime.state = lambda: FrankaStateSample(**{**state().to_dict(), "gripper_width_m": 0.0})
+    summary = runner(tmp_path, clock, runtime).run()
+    assert summary["outcome"] == "hand_not_open" and summary["steps"] == 0 and runtime.submits == 0
+    assert any(e["kind"] == "hand_not_open" for e in events(tmp_path))

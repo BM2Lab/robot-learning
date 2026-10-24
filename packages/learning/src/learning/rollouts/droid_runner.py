@@ -17,6 +17,9 @@ from ..integrations.openpi.cameras import droid_packet
 from ..integrations.openpi.droid import ChunkRejected
 
 
+HAND_OPEN_TOLERANCE_M = 0.005
+
+
 class _EndEpisode(Exception):
     pass
 
@@ -139,6 +142,12 @@ class DroidRunner:
         try:
             if not self._await_valid_state():
                 outcome = "runtime_fault" if self.fault is not None else "runtime_not_ready"
+                raise _EndEpisode
+            width = self.runtime.state().gripper_width_m
+            if width < self.spec.gripper.open_width_m-HAND_OPEN_TOLERANCE_M:
+                # DROID episodes start open; a closed Hand tells the policy it already holds something.
+                self.recorder.event("hand_not_open", gripper_width_m=width)
+                outcome = "hand_not_open"
                 raise _EndEpisode
             for step in range(self.max_steps):
                 self._poll()
