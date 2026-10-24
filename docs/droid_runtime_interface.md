@@ -2,7 +2,9 @@
 
 **Status: the message contracts are implemented (D3, `contracts` 0.0.2) and the
 runtime side runs against mocks (D4, franka-runtime 0.0.4 `franka_runtime.droid`,
-see its `docs/droid-runtime.md`). The Franky backend is D6.** Where D4 refined this
+see its `docs/droid-runtime.md`). D6 adds an offline-tested native candidate on the RT
+host (franka-runtime `docs/droid-inference-workstation-handoff.md`); it is not
+qualified for motion.** Where D4 refined this
 proposal, the refinement is marked **D4**. This specifies what the learning side will send to
 and expect from franka-runtime for zero-shot `pi05_droid_jointpos`. See
 [droid_handoff.md](droid_handoff.md) for the roadmap.
@@ -65,7 +67,9 @@ records both the camera time and the state sample's runtime timestamp.
    - per-row implied velocity, `|q_{k+1} − q_k| / 66.7 ms`, under configured limits
    - the first row against the **current** measured `q` (not only the source state).
      **D5/D4 decision:** setpoint lead. Row 0 may lead the measured q by at most
-     `max_target_lead_rad`; the motion generator limits approach speed and acceleration
+     `max_target_lead_rad`. **D6:** there is no trajectory generator. The native 1 kHz
+     hybrid joint-impedance controller pulls toward the setpoint, with explicit Franky slew
+     and libfranka filtering/rate limiting; measured-speed and raw-torque guards fault and stop
    - workspace and self-collision checks if available
    - a deadline that is still in the future after clock conversion
 
@@ -76,11 +80,15 @@ records both the camera time and the state sample's runtime timestamp.
 2. **Replacement.** One pending chunk at most. A newly accepted chunk replaces the
    rows not yet started of the current one at the next row boundary. It never
    interleaves with or rewinds the current chunk.
-3. **Execution.** The native executor tracks the row targets at 15 Hz. How it
-   moves between rows at 1 kHz (interpolation and filtering) is a runtime design
-   decision and must keep velocity and acceleration inside the configured limits.
-   The existing PPO route sends velocities with J7 held. This needs a separate
-   **7-joint position-target route**; do not reuse the PPO action spec.
+3. **Execution.** The executor switches row targets at 15 Hz. **D6 (native candidate):**
+   continuous 1 kHz hybrid joint impedance on all seven joints,
+   τ = (K_q + JᵀK_xJ)(q_d − q) − (D_q + JᵀD_xJ) q̇, plus Coriolis (gravity from firmware),
+   with a desired velocity of zero and no stop at each row. Gains are the pinned DROID FR3
+   defaults. Franky slew and libfranka filtering/rate limiting are explicit. There is
+   **no** Ruckig trajectory generator and no promised acceleration/jerk-limited
+   interpolation. The runtime bounds motion with a measured joint-speed guard and a
+   raw-torque guard (both fault and stop, they do not clamp), plus the row checks above.
+   The PPO route (6 velocities, J7 held) is not used.
 4. **Underrun.** When rows run out before a new chunk arrives, hold the last target
    for at most a configured `hold_timeout_ms`, then perform the runtime's own stop.
    The start of a hold, its duration and any stop are reported in receipts.

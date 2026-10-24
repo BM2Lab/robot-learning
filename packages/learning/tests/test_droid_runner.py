@@ -162,3 +162,78 @@ def test_stale_state_is_refused(tmp_path):
     with pytest.raises(RuntimeError, match="old"):
         runner(tmp_path, clock, runtime).run()
     assert runtime.released  # still released on the way out
+
+
+def test_runner_waits_for_first_valid_native_feedback(tmp_path):
+    clock = Clock()
+    runtime = FakeRuntime(clock)
+    valid_at = clock()+300_000_000
+    real_state = runtime.state
+
+    def state():
+        sample = real_state()
+        return sample if clock() >= valid_at else FrankaStateSample(
+            "fr3_01", "rt", sample.timestamp_ns, 1, Q, (0.,)*7, 0.08, False, False, False, "l")
+    runtime.state = state
+    summary = runner(tmp_path, clock, runtime, max_steps=1).run()
+    assert summary["chunks_applied"] == 1
+    ready = next(e for e in events(tmp_path) if e["kind"] == "runtime_ready")
+    assert ready["wait_ms"] >= 300
+
+
+def test_runner_gives_up_when_feedback_never_becomes_valid(tmp_path):
+    clock = Clock()
+    runtime = FakeRuntime(clock)
+    runtime.state = lambda: FrankaStateSample("fr3_01", "rt", clock()+OFFSET, 1, Q, (0.,)*7, 0.08, False, False,
+                                              False, "l")
+    summary = runner(tmp_path, clock, runtime, startup_timeout_ns=200_000_000).run()
+    assert summary["outcome"] == "runtime_not_ready" and summary["steps"] == 0 and runtime.submits == 0
+    assert summary["released"]
+
+
+def test_episode_summary_reports_timing_rejections_and_candidate_bounds(tmp_path):
+    import importlib.util
+    clock = Clock()
+    runtime = FakeRuntime(clock, reject=[True, False, False])
+    runner(tmp_path, clock, runtime, max_steps=3).run()
+    spec = importlib.util.spec_from_file_location("summarize", ROOT/"scripts/summarize_droid_episode.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    candidate = {"max_target_lead_rad": [0.3]*7, "max_consecutive_row_speed_rad_s": [0.435]*7}
+    summary = module.summarize(tmp_path/"ep", candidate)
+    assert summary["steps"] == 3 and summary["accepted"] == 2 and summary["chunks_applied"] == 2
+    assert summary["rejections"] == {"too fast": 1}
+    assert summary["accepted_to_applied_ms"]["n"] == 2 and summary["row0_lead_rad"]["max"] == pytest.approx(0.)
+    assert summary["candidate_would_reject_accepted"] == {"lead": 0, "row_speed": 0}
+
+
+def test_shadow_mode_replans_from_acceptance_without_applied_receipts(tmp_path):
+    clock = Clock()
+    runtime = FakeRuntime(clock)
+    real_submit = runtime.submit
+
+    def submit(chunk):  # a shadow runtime admits commands but never confirms native application
+        envelope, receipt = real_submit(chunk)
+        runtime.pending = [r for r in runtime.pending if r.status != "applied"]
+        return envelope, receipt
+    runtime.submit = submit
+    summary = runner(tmp_path, clock, runtime, shadow=True).run()
+    assert summary["shadow"] and summary["chunks_accepted"] == 3 and summary["chunks_applied"] == 0
+    assert summary["outcome"] == "max_steps" and summary["released"]
+    steps = [e for e in events(tmp_path) if e["kind"] == "step"]
+    gaps = [b["client_ns"]-a["client_ns"] for a, b in zip(steps, steps[1:])]
+    assert all(6*66_666_667 <= g < 9*66_666_667 for g in gaps)  # paced by acceptance, not stalled to deadlines
+
+
+def test_fault_during_replan_wait_is_noticed(tmp_path):
+    clock = Clock()
+    runtime = FakeRuntime(clock)
+    real_receipts = runtime.receipts
+
+    def receipts():
+        if runtime.next_sequence > 1 and runtime.fault is None:
+            runtime.fault = FaultReport("s", "e", "rt", clock()+OFFSET, "native_fault:102", "complete")
+        return real_receipts()
+    runtime.receipts = receipts
+    summary = runner(tmp_path, clock, runtime, max_steps=5).run()
+    assert summary["outcome"] == "runtime_fault" and summary["steps"] == 1

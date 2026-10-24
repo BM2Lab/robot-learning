@@ -69,6 +69,44 @@ Results:
   were read as rejection of its later accepted submission. It was fixed, and the
   unit-test fake now emits rejected receipts the way the real authority does.
 
+Startup: the runner waits up to 5 s after `start` for the first `valid` state sample,
+because native feedback is invalid until the first native callback, and never acts on an
+invalid sample. Each episode's `session` event records the robot-learning and sensors git
+revisions (commit and dirty flag) next to the runtime versions, policy pin and camera
+receipts. `scripts/summarize_droid_episode.py <episode_dir> [--candidate-limits <physical
+config>]` reports:
+- clock uncertainty and startup wait
+- state-to-camera skew
+- policy and capture-to-receipt latency
+- accepted → applied delay
+- row-0 lead and row-to-row speed
+- rejection causes, the fault and the outcome
+- how many accepted chunks the physical candidate's acceptance bounds would have rejected
+
+## Shadow mode (D7) and replanning
+
+`--replan-after-rows` now defaults to 5 of 8 rows. The cross-host mock measured capture →
+receipt at p95 110 ms, which leaves about 90 ms of slack (6 rows left about 18 ms).
+
+`--shadow` runs the full pipeline against a runtime that evaluates but never executes:
+
+- **The runtime's `hello` must report a backend name starting with `shadow`.** The runner
+  refuses a mismatch in either direction: `--shadow` against a backend that can move the
+  robot, or no `--shadow` against a shadow backend.
+- **The shadow runtime never sends `applied`.** That is franka-runtime's
+  `SessionAuthority(expect_application=False)`: offline shadow never confirms
+  application. The runner therefore times replanning from the `accepted` receipt and
+  records `chunks_accepted` and `"shadow": true`.
+- **What the runner expects from a franka-runtime shadow backend (to be built on the RT
+  host; this is D7 and needs authorization):**
+  - **State:** read-only FCI state is streamed as `FrankaStateSample`, with the native
+    validity rules.
+  - **Checks:** every acceptance and workspace check runs against the real measured q.
+  - **Execution:** the executor runs virtually, so would-be targets, holds and underruns
+    are logged; no command or gripper action is sent.
+- **Faults:** the runner now polls receipts during the replan wait, so a fault latched
+  mid-chunk ends the episode promptly.
+
 Tests:
 - `test_droid_runner.py`: runner logic with fakes and an injected clock.
 - `test_franka_runtime_client.py`: end-to-end against the real mock. Runs only when
@@ -83,8 +121,11 @@ rule (measured q → row 0 within one row at the velocity limit) and most chunks
 rejected. franka-runtime now uses **setpoint lead**:
 - row 0 may lead the measured q by at most `max_target_lead_rad`;
 - consecutive rows stay under the velocity limit;
-- the motion generator limits velocity and acceleration toward the setpoint (the mock
-  now, Franky in D6).
+- toward the setpoint, the mock rate- and acceleration-limits its kinematic arm. The D6
+  native candidate instead runs continuous 1 kHz hybrid joint impedance (DROID FR3 gains)
+  with no trajectory generator; measured-speed and torque guards fault and stop. Mock
+  acceptance rates therefore do not predict physical ones: compare against the
+  physical candidate's bounds with `scripts/summarize_droid_episode.py --candidate-limits`.
 
 Loopback in setpoint mode, with the mock starting at the robot's observed home pose:
 

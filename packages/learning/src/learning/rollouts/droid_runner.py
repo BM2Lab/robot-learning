@@ -17,6 +17,10 @@ from ..integrations.openpi.cameras import droid_packet
 from ..integrations.openpi.droid import ChunkRejected
 
 
+class _EndEpisode(Exception):
+    pass
+
+
 class DroidEpisodeRecorder:
     """Append-only JSON-lines record of one episode; images stay inside the typed packets."""
 
@@ -40,7 +44,9 @@ class DroidEpisodeRecorder:
 class DroidRunner:
     def __init__(self, spec, policy, runtime, router, recorder, *, instruction, max_steps, replan_after_rows,
                  max_state_age_ns, max_state_camera_skew_ns, max_consecutive_rejections,
-                 clock=time.monotonic_ns, sleep=time.sleep):
+                 startup_timeout_ns=5_000_000_000, shadow=False, clock=time.monotonic_ns, sleep=time.sleep):
+        """``shadow``: the runtime evaluates but never executes commands, so it never confirms
+        ``applied``; replanning is then timed from the ``accepted`` receipt instead."""
         if not 1 <= replan_after_rows <= spec.open_loop_horizon:
             raise ValueError("replan_after_rows must be within the open-loop horizon")
         if not isinstance(instruction, str) or not instruction.strip() or max_steps < 1:
@@ -49,6 +55,7 @@ class DroidRunner:
         self.instruction, self.max_steps, self.replan_after_rows = instruction, max_steps, replan_after_rows
         self.max_state_age_ns, self.max_skew_ns = max_state_age_ns, max_state_camera_skew_ns
         self.max_rejections, self.clock, self.sleep = max_consecutive_rejections, clock, sleep
+        self.startup_timeout_ns, self.shadow = startup_timeout_ns, shadow
         self.period_ns = round(1e9/spec.action.policy_hz)
         self.receipts = {}
         self.fault = None
@@ -62,6 +69,21 @@ class DroidRunner:
             self.fault = fault
             self.recorder.event("fault", fault=fault.to_dict(), authority_state=raw.get("authority_state"))
         return raw
+
+    def _await_valid_state(self):
+        """Native feedback is invalid until its first callback after ``start``; never act on it before."""
+        start = self.clock()
+        while self.clock()-start < self.startup_timeout_ns:
+            self._poll()
+            if self.fault is not None:
+                return False
+            state = self.runtime.state()
+            if state.valid:
+                self.recorder.event("runtime_ready", wait_ms=(self.clock()-start)/1e6, state=state.to_dict())
+                return True
+            self.sleep(0.01)
+        self.recorder.event("runtime_not_ready", wait_ms=(self.clock()-start)/1e6)
+        return False
 
     def _observe(self, step, episode_id):
         state = self.runtime.state().require_valid()
@@ -113,6 +135,9 @@ class DroidRunner:
                             replan_after_rows=self.replan_after_rows)
         outcome, rejections, steps, applied_count = "max_steps", 0, 0, 0
         try:
+            if not self._await_valid_state():
+                outcome = "runtime_fault" if self.fault is not None else "runtime_not_ready"
+                raise _EndEpisode
             for step in range(self.max_steps):
                 self._poll()
                 if self.fault is not None:
@@ -141,15 +166,21 @@ class DroidRunner:
                         break
                     continue
                 rejections = 0
-                applied = self._await_applied(envelope, receipt)
-                if applied is None:
-                    continue
-                applied_count += 1
-                replan_at = self.runtime.to_client(applied.timestamp_ns)+self.replan_after_rows*self.period_ns
+                if self.shadow:
+                    started = receipt  # nothing executes; time the replan from admission
+                else:
+                    started = self._await_applied(envelope, receipt)
+                    if started is None:
+                        continue
+                    applied_count += 1
+                replan_at = self.runtime.to_client(started.timestamp_ns)+self.replan_after_rows*self.period_ns
                 while self.clock() < replan_at and self.fault is None:
-                    self.sleep(min(0.005, max(0., (replan_at-self.clock())/1e9)))
+                    self._poll()  # notice a latched fault during the wait, not only at the next step
+                    self.sleep(min(0.01, max(0., (replan_at-self.clock())/1e9)))
             if outcome == "max_steps":
                 self._finish_rows((self.spec.open_loop_horizon+1)*self.period_ns)
+        except _EndEpisode:
+            pass
         except KeyboardInterrupt:
             outcome = "interrupted"
         finally:
@@ -161,7 +192,9 @@ class DroidRunner:
                 deadline = self.clock()+2_000_000_000
                 while self.clock() < deadline and self._poll().get("authority_state") != "complete" and self.fault is None:
                     self.sleep(0.01)
-            summary = {"episode_id": episode_id, "outcome": outcome, "steps": steps, "chunks_applied": applied_count,
+            summary = {"episode_id": episode_id, "outcome": outcome, "shadow": self.shadow, "steps": steps,
+                       "chunks_accepted": sum(any(r.status == "accepted" for r in v) for v in self.receipts.values()),
+                       "chunks_applied": applied_count,
                        "released": released, "fault": None if self.fault is None else self.fault.to_dict(),
                        "receipt_statuses": {str(k): [r.status for r in v] for k, v in self.receipts.items()}}
             self.recorder.event("episode_end", **summary)

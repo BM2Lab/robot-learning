@@ -60,8 +60,12 @@ class DroidRuntimeClient:
         return ClockProbe(self.client_clock_id, reply["server_clock_id"], sent, reply["server_receive_ns"],
                           reply["server_send_ns"], received)
 
-    def open(self, request_id):
-        """hello → probes → open → clock_register → start. Returns DroidSessionReady."""
+    def open(self, request_id, *, start=True):
+        """hello → probes → open → clock_register → start. Returns DroidSessionReady.
+
+        ``start=False`` stops before ``start``: native control never starts, and a release
+        then cancels the session before start.
+        """
         self.hello = self.request("hello")
         if self.hello["contract_sha256"] != payload_sha256(self.spec):
             raise RuntimeRequestError("Runtime serves a different DROID contract")
@@ -77,7 +81,8 @@ class DroidRuntimeClient:
         registered = ClockOffsetEstimate.from_dict(self.request("clock_register", {"probes": [p.to_dict() for p in probes]}))
         if (registered.offset_ns, registered.uncertainty_ns) != (estimate.offset_ns, estimate.uncertainty_ns):
             raise RuntimeRequestError("Runtime registered a different clock estimate")
-        self.request("start")
+        if start:
+            self.request("start")
         self.ready, self.estimate = ready, estimate
         self._heartbeat = threading.Thread(target=self._heartbeat_loop, name="droid-heartbeat", daemon=True)
         self._heartbeat.start()

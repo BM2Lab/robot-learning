@@ -21,6 +21,20 @@ from learning.integrations.openpi.droid import OpenPIDroidClient, load_pin
 from learning.rollouts.droid_runner import DroidEpisodeRecorder, DroidRunner
 
 
+def source_revision(path):
+    """Git commit and dirty flag of the checkout containing ``path`` (None outside Git)."""
+    import subprocess
+    directory = Path(path).resolve().parent
+    try:
+        commit = subprocess.run(["git", "-C", str(directory), "rev-parse", "HEAD"], capture_output=True, text=True,
+                                check=True).stdout.strip()
+        dirty = subprocess.run(["git", "-C", str(directory), "status", "--porcelain", "--untracked-files=no"],
+                               capture_output=True, text=True, check=True).stdout.strip() != ""
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    return {"commit": commit, "dirty": dirty}
+
+
 def read_token(path):
     mode = path.stat().st_mode
     if mode & (stat.S_IRWXG | stat.S_IRWXO):
@@ -46,7 +60,10 @@ def main():
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--smoke", action="store_true", help="allow a bounded output directory under /tmp")
     parser.add_argument("--max-steps", type=int, default=10)
-    parser.add_argument("--replan-after-rows", type=int, default=6)
+    parser.add_argument("--replan-after-rows", type=int, default=5,
+                        help="5 of 8 rows leaves about 90 ms slack at the measured 110 ms capture-to-receipt p95")
+    parser.add_argument("--shadow", action="store_true",
+                        help="require a runtime whose hello reports a shadow backend (evaluates, never executes)")
     parser.add_argument("--max-uncertainty-us", type=int, default=2000)
     parser.add_argument("--max-consecutive-rejections", type=int, default=3)
     args = parser.parse_args()
@@ -74,8 +91,15 @@ def main():
                                      max_uncertainty_ns=args.max_uncertainty_us*1000)
         stack.callback(runtime.close)
         ready = runtime.open(f"droid-run-{time.time_ns()}")
+        backend = str(runtime.hello.get("versions", {}).get("backend", ""))
+        if args.shadow != backend.startswith("shadow"):
+            runtime.release("backend/shadow mismatch")
+            raise SystemExit(f"Runtime backend {backend!r} does not match --shadow={args.shadow}; refusing to run")
+        import learning
+        import sensors
+        sources = {"robot-learning": source_revision(learning.__file__), "sensors": source_revision(sensors.__file__)}
         recorder.event("session", hello=runtime.hello, ready=ready.to_dict(), clock=runtime.estimate.to_dict(),
-                       policy=policy.receipt(), cameras=cameras)
+                       policy=policy.receipt(), cameras=cameras, sources=sources)
         deadline = time.monotonic()+5
         while True:  # first fresh frames from both cameras
             try:
@@ -88,7 +112,7 @@ def main():
         runner = DroidRunner(spec, policy, runtime, router, recorder, instruction=args.instruction,
                              max_steps=args.max_steps, replan_after_rows=args.replan_after_rows,
                              max_state_age_ns=100_000_000, max_state_camera_skew_ns=100_000_000,
-                             max_consecutive_rejections=args.max_consecutive_rejections)
+                             max_consecutive_rejections=args.max_consecutive_rejections, shadow=args.shadow)
         summary = runner.run()
     print(json.dumps(summary, indent=2))
 

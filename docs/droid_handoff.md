@@ -98,6 +98,15 @@ runs at 100 Mb/s. Details are in franka-runtime `docs/droid-d6-rt-host.md`.
 
 ## Known issues and open decisions
 
+0. **Cross-host mock test passed (2026-10-24).** The runner on this host drove the
+   RT host's mock over the direct link: 10 and 30 steps, clean releases, clock uncertainty
+   339 µs, capture → receipt p95 110 ms. Report and episodes are in
+   `/shared/projects/state/runs/2026-10-24-crosshost-mock/` (REPORT.md). Open before D7:
+   - the row-speed bound vs the policy: the physical candidate would reject about 30% of
+     accepted chunks;
+   - replace the placeholder session token with a random one on both hosts;
+   - replan after 5 rows rather than 6.
+
 0. **Next is D6 on the RT host.** Follow franka-runtime `docs/droid-d6-rt-host.md`:
    - get the code there; franka-runtime's branch is uncommitted
    - host hygiene
