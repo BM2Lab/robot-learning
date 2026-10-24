@@ -16,8 +16,11 @@ def validate_artifact_path(path, required_bytes, smoke=False):
         root = Path(value).expanduser().resolve()
         if not root.is_dir() or not path.is_relative_to(root) or path == root:
             raise ValueError("Artifact directory must be a child of existing LAB_DATA_ROOT")
-        if not any(os.path.ismount(p) for p in (root, *root.parents) if str(p) != "/"):
-            raise RuntimeError("LAB_DATA_ROOT is not on a mounted data filesystem")
+        # A dedicated data mount is required unless the host has only a system disk and says so.
+        if (os.environ.get("LAB_DATA_ROOT_ON_SYSTEM_DISK") != "1"
+                and not any(os.path.ismount(p) for p in (root, *root.parents) if str(p) != "/")):
+            raise RuntimeError("LAB_DATA_ROOT is not on a mounted data filesystem "
+                               "(single-disk host: set LAB_DATA_ROOT_ON_SYSTEM_DISK=1)")
         # Reject source, Python environments, and workspace runtime state.
         for parent in (root, *root.parents):
             if (parent/"AGENTS.md").exists() or (parent/"pyvenv.cfg").exists() or (parent/".git").exists():

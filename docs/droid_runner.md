@@ -17,7 +17,7 @@ subject to that runtime's commissioning and authorization.
 |---|---|
 | `learning.integrations.franka_runtime.client` | `DroidRuntimeClient`, which speaks franka-runtime's DROID protocol using contracts only (never imports `franka_runtime`). Open sequence: `hello` (contract and robot must match) → clock probes → `open` (verified with `DroidSessionReady.validate_for`) → `clock_register` (the runtime must derive the same estimate) → `start`. A background heartbeat sends probes every 0.25 s. `submit` advances the sequence only on acceptance. |
 | `learning.rollouts.droid_runner` | `DroidRunner` (episode loop) and `DroidEpisodeRecorder` (JSON lines + summary) |
-| `scripts/run_droid_runtime.py` | one recorded episode. The token comes from a `chmod 600` file. Output goes through `validate_artifact_path` (`--smoke` for /tmp, otherwise under `LAB_DATA_ROOT`). |
+| `scripts/run_droid_runtime.py` | one recorded episode. The token comes from a `chmod 600` file. Output goes through `validate_artifact_path` (`--smoke` for /tmp, otherwise under `LAB_DATA_ROOT`; on a single-disk host set `LAB_DATA_ROOT_ON_SYSTEM_DISK=1`). |
 
 ## Loop
 

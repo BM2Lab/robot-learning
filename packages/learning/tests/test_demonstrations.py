@@ -85,3 +85,13 @@ def test_lerobot_roundtrip(tmp_path, monkeypatch):
     assert np.allclose(stats["action"]["mean"], [.0005, .0005, 0])
     info = json.loads((tmp_path/"lerobot/meta/info.json").read_text())
     assert info["splits"] == {"train": "0:1", "validation": "1:2"}
+
+
+def test_single_disk_host_opts_in_to_a_system_disk_data_root(tmp_path, monkeypatch):
+    root = tmp_path/"runs"; root.mkdir()
+    monkeypatch.setenv("LAB_DATA_ROOT", str(root))
+    monkeypatch.delenv("LAB_DATA_ROOT_ON_SYSTEM_DISK", raising=False)
+    monkeypatch.setattr("os.path.ismount", lambda p: False)
+    with pytest.raises(RuntimeError, match="SYSTEM_DISK"): validate_artifact_path(root/"episode", 1024)
+    monkeypatch.setenv("LAB_DATA_ROOT_ON_SYSTEM_DISK", "1")
+    assert validate_artifact_path(root/"episode", 1024) == root/"episode"
